@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>מערכת הצבעה מבוזרת - ממשק אדמין</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .navbar {
+            background-color: #2c3e50;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .navbar a:hover { background-color: #34495e; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .connect-section { text-align: center; }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        button:hover { transform: translateY(-2px); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .status-message {
+            text-align: center;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-weight: bold;
+            white-space: pre-line;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        .admin-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+        input[type="text"], input[type="datetime-local"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        textarea {
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            min-height: 120px;
+            direction: ltr;
+        }
+        input:focus, textarea:focus { outline: none; border-color: #667eea; }
+        .timer-display {
+            text-align: center;
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 20px 0;
+        }
+        .voting-status {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .status-open { background-color: #d4edda; color: #155724; }
+        .status-closed { background-color: #f8d7da; color: #721c24; }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 20px;
+            overflow: hidden;
+            border-radius: 10px;
+        }
+        thead { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        th { 
+            padding: 18px;
+            text-align: center;
+            border-bottom: none;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        td { 
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #e0e0e0;
+            background: white;
+            transition: background 0.3s ease;
+        }
+        tbody tr:hover td { background-color: #f8f9fa; }
+        tbody tr:last-child td { border-bottom: none; }
+        .vote-button {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            padding: 8px 20px;
+            font-size: 14px;
+        }
+        .reward-button {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            font-size: 18px;
+            padding: 15px 40px;
+        }
+        .merkle-button {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 10px 25px;
+            margin: 5px;
+        }
+        #winnerSection {
+            display: none;
+            text-align: center;
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        #winnerSection h2 { color: #4CAF50; margin-bottom: 10px; }
+        #rankingList { font-size: 18px; line-height: 1.6; text-align: right; margin-top: 15px; }
+        .merkle-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+        .merkle-info-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border-right: 4px solid #667eea;
+        }
+        .merkle-info-box code {
+            background: #f8f9fa;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            display: block;
+            margin-top: 5px;
+            word-break: break-all;
+            direction: ltr;
+        }
+        @media (max-width: 768px) { .admin-section { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="navbar">
+            <a href="/index.html">דף ראשי</a>
+        </div>
+
+        <div class="card connect-section">
+            <h2>חיבור לארנק</h2>
+            <button onclick="connectMetamask()" id="connectBtn">התחבר ל-MetaMask</button>
+            <div id="walletStatus"></div>
+        </div>
+
+        <div class="card">
+            <h2 style="text-align: center; margin-bottom: 20px;">סטטוס הצבעה וטיימר</h2>
+            <div id="votingStatusDisplay" class="voting-status"></div>
+            <div id="timerDisplay" class="timer-display"></div>
+            <div style="text-align: center;">
+                <button onclick="updateVotingStatus()">רענן סטטוס</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="text-align: center; margin-bottom: 20px;">ממשק ניהול אדמין</h2>
+            <div class="admin-section">
+                <div>
+                    <h3>הוספת מועמד</h3>
+                    <div class="form-group">
+                        <label>שם המועמד:</label>
+                        <input type="text" id="candidateName" placeholder="הכנס שם מועמד...">
+                    </div>
+                    <button onclick="addCandidate()">הוסף מועמד</button>
+                    <div id="addCandidateStatus"></div>
+                </div>
+                <div>
+                    <h3>הגדרת חלון זמן לבחירות</h3>
+                    <div class="form-group">
+                        <label>תאריך ושעת התחלה:</label>
+                        <input type="datetime-local" id="startDateTime">
+                    </div>
+                    <div class="form-group">
+                        <label>תאריך ושעת סיום:</label>
+                        <input type="datetime-local" id="endDateTime">
+                    </div>
+                    <button onclick="setVotingWindow()">קבע חלון זמן</button>
+                    <div id="timeWindowStatus"></div>
+                </div>
+            </div>
+
+            <div class="merkle-section">
+                <h3> ניהול ספר בוחרים (Merkle Tree)</h3>
+                <p style="margin-bottom: 10px; color: #666;">הוסף כתובות בוחרים מורשים (כל כתובת בשורה נפרדת או מופרדת בפסיקים):</p>
+                <textarea id="votersInput" placeholder="0x1234567890123456789012345678901234567890&#10;0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"></textarea>
+                <div style="margin-top: 10px;">
+                    <button class="merkle-button" onclick="addVotersToMerkle()">הוסף בוחרים ועדכן Merkle Root</button>
+                    <button class="merkle-button" onclick="generateRandomVoters()">צור 5 כתובות לדוגמה</button>
+                </div>
+                <div id="merkleStatus"></div>
+                <div id="merkleInfoDisplay" style="display: none;" class="merkle-info-box">
+                    <p><strong> Merkle Root עודכן בהצלחה!</strong></p>
+                    <p>Root Hash:</p>
+                    <code id="displayMerkleRoot"></code>
+                    <p style="margin-top: 10px;">מספר בוחרים: <strong id="displayVotersCount">0</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="text-align: center; margin-bottom: 20px;">פרטי הצבעה נוכחיים</h2>
+            <div id="votingDetails" style="padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                <p><strong> התחלה:</strong> <span id="startTime">טוען...</span></p>
+                <p><strong> סיום:</strong> <span id="endTime">טוען...</span></p>
+                <p><strong> זמן נותר:</strong> <span id="remainingTime">טוען...</span></p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="text-align: center; margin-bottom: 20px;">👥 רשימת מועמדים</h2>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <button onclick="getAllCandidates()">🔄 רענן רשימת מועמדים</button>
+                <span style="margin-right: 15px; color: #666; font-size: 14px;">
+                    🔄 מתעדכן אוטומטית כל 3 שניות
+                </span>
+            </div>
+            <div id="candidatesStatus"></div>
+            <table id="candidatesTable">
+                <thead>
+                    <tr><th>מספר</th><th>שם המועמד</th><th>מספר קולות</th><th>הצבע</th></tr>
+                </thead>
+                <tbody id="candidatesBody">
+                    <tr>
+                        <td colspan="4" style="padding: 30px;">
+                            טוען מועמדים...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2 style="text-align: center; margin-bottom: 20px;">חלוקת תגמולים</h2>
+            <div style="text-align: center;">
+                <p style="margin-bottom: 15px; font-size: 16px; color: #666;">
+                    לחץ על הכפתור כדי לחלק תגמולים למצביעים בסיום ההצבעה
+                </p>
+                <button onclick="distributeRewards()" class="reward-button">
+                     חלק תגמולים
+                </button>
+                <div id="rewardsStatus"></div>
+            </div>
+        </div>
+
+        <div id="winnerSection" class="card">
+            <h2> המנצח: <span id="winnerName"></span></h2>
+            <h3>דירוג מלא:</h3>
+            <div id="rankingList"></div>
+        </div>
+    </div>
+
+    <script>
+        let WALLET_CONNECTED = "";
+        let contractAddress = "0xeB51d9b9B644014aF89559e3B2141C924954333e"; // 🔴 עדכן כאן!
+        let contractAbi = [
+    {
+      "inputs": [
+        {
+          "internalType": "string[]",
+          "name": "_candidateNames",
+          "type": "string[]"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_durationInMinutes",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "index",
+          "type": "uint256"
+        }
+      ],
+      "name": "CandidateAdded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [],
+      "name": "MerkleDisabled",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [],
+      "name": "MerkleEnabled",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "newRoot",
+          "type": "bytes32"
+        }
+      ],
+      "name": "MerkleRootSet",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "voter",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "RewardDistributed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [],
+      "name": "RewardsDisabled",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "totalVoters",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "totalAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "RewardsDistributedToAll",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "tokenAddress",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "rewardAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "RewardsEnabled",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "voter",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "candidateIndex",
+          "type": "uint256"
+        }
+      ],
+      "name": "VoteCast",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "startTime",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "endTime",
+          "type": "uint256"
+        }
+      ],
+      "name": "VotingWindowSet",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_name",
+          "type": "string"
+        }
+      ],
+      "name": "addCandidate",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "candidates",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "voteCount",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "disableMerkle",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "disableRewards",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "distributeRewards",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "enableMerkle",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_etiTokenAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_rewardAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "enableRewards",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "etiToken",
+      "outputs": [
+        {
+          "internalType": "contract IETIToken",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getAllVoters",
+      "outputs": [
+        {
+          "internalType": "address[]",
+          "name": "",
+          "type": "address[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getAllVotesOfCandidates",
+      "outputs": [
+        {
+          "internalType": "string[]",
+          "name": "names",
+          "type": "string[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "votes",
+          "type": "uint256[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_index",
+          "type": "uint256"
+        }
+      ],
+      "name": "getCandidate",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "voteCount",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getCandidatesCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getMerkleStatus",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "enabled",
+          "type": "bool"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "root",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getRemainingTime",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getTimeUntilStart",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getTotalVoters",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getVotingStatus",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_voter",
+          "type": "address"
+        }
+      ],
+      "name": "hasVoted",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_voter",
+          "type": "address"
+        }
+      ],
+      "name": "isEligibleForReward",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "merkleEnabled",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "merkleRoot",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "rewardPerVote",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "rewardsDistributed",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "rewardsEnabled",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_merkleRoot",
+          "type": "bytes32"
+        }
+      ],
+      "name": "setMerkleRoot",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_rewardAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "setRewardPerVote",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_startTime",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_endTime",
+          "type": "uint256"
+        }
+      ],
+      "name": "setVotingWindow",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_voter",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes32[]",
+          "name": "_merkleProof",
+          "type": "bytes32[]"
+        }
+      ],
+      "name": "verifyVoterEligibility",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_candidateIndex",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes32[]",
+          "name": "_merkleProof",
+          "type": "bytes32[]"
+        }
+      ],
+      "name": "vote",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "voters",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "votersList",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "votingEnd",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "votingStart",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ];
+        let timerInterval;
+        let autoRefreshInterval;
+
+        const connectMetamask = async () => {
+            try {
+                if (!window.ethereum) return showStatus('walletStatus','התקן MetaMask','error');
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                const signer = provider.getSigner();
+                WALLET_CONNECTED = await signer.getAddress();
+                showStatus('walletStatus',`מחובר: ${WALLET_CONNECTED.substring(0,6)}...${WALLET_CONNECTED.slice(-4)}`,'success');
+                document.getElementById('connectBtn').textContent = 'מחובר ✓';
+                document.getElementById('connectBtn').disabled = true;
+                updateVotingStatus();
+                getAllCandidates();
+                startAutoRefresh();
+            } catch(e){ showStatus('walletStatus','שגיאה: '+e.message,'error'); }
+        };
+
+        const startAutoRefresh = () => {
+            if(autoRefreshInterval) clearInterval(autoRefreshInterval);
+            console.log('🔄 הפעלת רענון אוטומטי כל 3 שניות');
+            autoRefreshInterval = setInterval(async () => {
+                if(WALLET_CONNECTED){
+                    console.log(' רענון אוטומטי - טוען מועמדים...');
+                    await getAllCandidates();
+                }
+            }, 3000);
+        };
+
+        const updateVotingStatus = async () => {
+            if(!WALLET_CONNECTED) return showStatus('votingStatusDisplay','התחבר קודם','error');
+            try{
+                const provider=new ethers.providers.Web3Provider(window.ethereum);
+                const signer=provider.getSigner();
+                const c=new ethers.Contract(contractAddress,contractAbi,signer);
+                const isOpen=await c.getVotingStatus();
+                const remaining=await c.getRemainingTime();
+                const start=await c.votingStart();
+                const end=await c.votingEnd();
+                const merkleStatus = await c.getMerkleStatus();
+                const merkleRoot = merkleStatus.root;
+                const merkleEnabled = merkleStatus.enabled;
+                
+                const statusDiv=document.getElementById('votingStatusDisplay');
+                if(isOpen){ statusDiv.textContent='🟢 פתוח'; statusDiv.className='voting-status status-open'; }
+                else { statusDiv.textContent='🔴 סגור'; statusDiv.className='voting-status status-closed'; }
+                startTimer(remaining.toNumber());
+                document.getElementById('startTime').textContent=new Date(start*1000).toLocaleString('he-IL');
+                document.getElementById('endTime').textContent=new Date(end*1000).toLocaleString('he-IL');
+                document.getElementById('remainingTime').textContent=formatTime(remaining.toNumber());
+                document.getElementById('merkleEnabled').textContent = merkleEnabled ? '✅ פעיל' : '❌ לא פעיל';
+                document.getElementById('contractMerkleRoot').textContent = merkleRoot || 'לא מוגדר';
+            }catch(e){ showStatus('votingStatusDisplay','שגיאה: '+e.message,'error'); }
+        };
+
+        const startTimer=(seconds)=>{
+            if(timerInterval) clearInterval(timerInterval);
+            let r=seconds; updateTimerDisplay(r);
+            timerInterval=setInterval(()=>{
+                r--; updateTimerDisplay(r);
+                if(r<=0){ clearInterval(timerInterval); r=0; showResults(); }
+            },1000);
+        };
+
+        const updateTimerDisplay=(s)=>{
+            const d=document.getElementById('timerDisplay');
+            if(s<=0){ d.textContent=' הזמן תם'; d.style.color='#dc3545'; }
+            else { d.textContent=formatTime(s); d.style.color='#667eea'; }
+        };
+
+        const formatTime=(s)=>{
+            const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
+            return `${h}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+        };
+
+        const showResults=async()=>{
+            const provider=new ethers.providers.Web3Provider(window.ethereum);
+            const signer=provider.getSigner();
+            const c=new ethers.Contract(contractAddress,contractAbi,signer);
+            const [names,votes]=await c.getAllVotesOfCandidates();
+            if(!names.length) return;
+            let arr=names.map((n,i)=>({name:n,votes:votes[i].toNumber()}));
+            arr.sort((a,b)=>b.votes-a.votes);
+            const winner=arr[0];
+            document.getElementById('winnerName').textContent=`${winner.name} (${winner.votes} קולות)`;
+            const list=document.getElementById('rankingList');
+            list.innerHTML=arr.map((a,i)=>`${i+1}. ${a.name} — ${a.votes} קולות`).join('<br>');
+            document.getElementById('winnerSection').style.display='block';
+        };
+
+        const getAllCandidates=async()=>{
+            if(!WALLET_CONNECTED) {
+                console.log('ארנק לא מחובר');
+                return;
+            }
+            try{
+                console.log('מתחיל לטעון מועמדים...');
+                const provider=new ethers.providers.Web3Provider(window.ethereum);
+                const signer=provider.getSigner();
+                const c=new ethers.Contract(contractAddress,contractAbi,signer);
+                
+                const [names,votes]=await c.getAllVotesOfCandidates();
+                
+                console.log('התקבלו מועמדים:', {
+                    names: names,
+                    votes: votes.map(v=>v.toString())
+                });
+                
+                const tb=document.getElementById('candidatesBody');
+                
+                if(!tb) {
+                    console.error('לא נמצא tbody');
+                    return;
+                }
+                
+                tb.innerHTML='';
+                
+                if(names.length === 0) {
+                    tb.innerHTML = '<tr><td colspan="4" style="padding: 30px; color: #999;">❌ אין מועמדים במערכת</td></tr>';
+                    return;
+                }
+                
+                names.forEach((n,i)=>{
+                    const r=tb.insertRow();
+                    const voteCount = votes[i].toString();
+                    console.log(`מועמד ${i}: ${n} - ${voteCount} קולות`);
+                    r.innerHTML=`
+                        <td>${i}</td>
+                        <td>${n}</td>
+                        <td><span style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 6px 16px; border-radius: 20px; font-weight: bold; font-size: 14px; display: inline-block;">${voteCount}</span></td>
+                        <td><button class='vote-button' onclick='voteForCandidate(${i})'>הצבע</button></td>
+                    `;
+                });
+                
+                const timestamp = new Date().toLocaleTimeString('he-IL');
+                console.log(` טבלה עודכנה בהצלחה בשעה ${timestamp}`);
+                
+            }catch(e){
+                console.error(' שגיאה בטעינת מועמדים:', e);
+                const tb=document.getElementById('candidatesBody');
+                if(tb) {
+                    tb.innerHTML = '<tr><td colspan="4" style="padding: 30px; color: #dc3545;">❌ שגיאה בטעינת מועמדים</td></tr>';
+                }
+                showStatus('candidatesStatus','שגיאה בטעינת מועמדים: '+e.message,'error');
+            }
+        };
+
+        const voteForCandidate=async(i)=>{
+            try{
+                console.log(`מצביע למועמד ${i}...`);
+                showStatus('candidatesStatus','מכין הצבעה...','info');
+                
+                const provider=new ethers.providers.Web3Provider(window.ethereum);
+                const signer=provider.getSigner();
+                const voterAddress = await signer.getAddress();
+                
+                const proofResponse = await fetch(`/api/merkle-proof/${voterAddress}`);
+                const proofData = await proofResponse.json();
+                
+                if(!proofData.isInVotersList && proofData.proof.length === 0) {
+                    showStatus('candidatesStatus',' אתה לא רשום בספר הבוחרים','error');
+                    return;
+                }
+                
+                const proof = proofData.proof || [];
+                console.log('Merkle Proof:', proof);
+                
+                showStatus('candidatesStatus','שולח הצבעה...','info');
+                const c=new ethers.Contract(contractAddress,contractAbi,signer);
+                const tx=await c.vote(i, proof);
+                console.log('טרנזקציה נשלחה, ממתין לאישור...');
+                await tx.wait();
+                console.log('טרנזקציה אושרה!');
+                showStatus('candidatesStatus',' ההצבעה נשלחה בהצלחה!','success');
+                
+                setTimeout(async () => {
+                    console.log('מרענן טבלה אחרי הצבעה...');
+                    await getAllCandidates();
+                }, 1000);
+                
+            }catch(e){
+                console.error('שגיאה בהצבעה:', e);
+                showStatus('candidatesStatus',' שגיאה: '+e.message,'error');
+            }
+        };
+
+        const addCandidate = async () => {
+            if(!WALLET_CONNECTED) return showStatus('addCandidateStatus','התחבר קודם לארנק','error');
+            
+            const candidateName = document.getElementById('candidateName').value.trim();
+            if(!candidateName) return showStatus('addCandidateStatus','הזן שם מועמד','error');
+            
+            try{
+                showStatus('addCandidateStatus','מוסיף מועמד... אנא המתן','info');
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const signer = provider.getSigner();
+                const c = new ethers.Contract(contractAddress, contractAbi, signer);
+                
+                const tx = await c.addCandidate(candidateName);
+                await tx.wait();
+                
+                showStatus('addCandidateStatus',`✅ המועמד "${candidateName}" נוסף בהצלחה!`,'success');
+                document.getElementById('candidateName').value = '';
+                
+                setTimeout(async () => {
+                    await getAllCandidates();
+                }, 1000);
+                
+            }catch(e){
+                console.error('שגיאה בהוספת מועמד:', e);
+                showStatus('addCandidateStatus',' שגיאה: '+e.message,'error');
+            }
+        };
+
+        const setVotingWindow = async () => {
+            if(!WALLET_CONNECTED) return showStatus('timeWindowStatus','התחבר קודם לארנק','error');
+            
+            const startDateTime = document.getElementById('startDateTime').value;
+            const endDateTime = document.getElementById('endDateTime').value;
+            
+            if(!startDateTime || !endDateTime) {
+                return showStatus('timeWindowStatus','הזן תאריך ושעת התחלה וסיום','error');
+            }
+            
+            try{
+                showStatus('timeWindowStatus','מגדיר חלון זמן... אנא המתן','info');
+                
+                const startTimestamp = Math.floor(new Date(startDateTime).getTime() / 1000);
+                const endTimestamp = Math.floor(new Date(endDateTime).getTime() / 1000);
+                
+                if(endTimestamp <= startTimestamp) {
+                    return showStatus('timeWindowStatus','זמן הסיום חייב להיות אחרי זמן ההתחלה','error');
+                }
+                
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const signer = provider.getSigner();
+                const c = new ethers.Contract(contractAddress, contractAbi, signer);
+                
+                const tx = await c.setVotingWindow(startTimestamp, endTimestamp);
+                await tx.wait();
+                
+                showStatus('timeWindowStatus',' חלון הזמן נקבע בהצלחה!','success');
+                
+                setTimeout(async () => {
+                    await updateVotingStatus();
+                }, 1000);
+                
+            }catch(e){
+                console.error('שגיאה בהגדרת חלון זמן:', e);
+                showStatus('timeWindowStatus',' שגיאה: '+e.message,'error');
+            }
+        };
+
+        const distributeRewards=async()=>{
+            if(!WALLET_CONNECTED) return showStatus('rewardsStatus','התחבר קודם לארנק','error');
+            try{
+                showStatus('rewardsStatus','מחלק תגמולים... אנא המתן','info');
+                const provider=new ethers.providers.Web3Provider(window.ethereum);
+                const signer=provider.getSigner();
+                const c=new ethers.Contract(contractAddress,contractAbi,signer);
+                
+                const tx=await c.distributeRewards();
+                await tx.wait();
+                
+                showStatus('rewardsStatus',' התגמולים חולקו בהצלחה!','success');
+            }catch(e){
+                showStatus('rewardsStatus',' שגיאה בחלוקת תגמולים: '+e.message,'error');
+            }
+        };
+
+        const addVotersToMerkle = async () => {
+            if(!WALLET_CONNECTED) return showStatus('merkleStatus','התחבר קודם לארנק','error');
+            
+            const votersInput = document.getElementById('votersInput').value;
+            if(!votersInput.trim()) return showStatus('merkleStatus','הזן כתובות בוחרים','error');
+            
+            try{
+                showStatus('merkleStatus','מוסיף בוחרים ויוצר Merkle Tree... אנא המתן','info');
+                
+                const addresses = votersInput
+                    .split(/[\n,]/)
+                    .map(addr => addr.trim())
+                    .filter(addr => addr.length > 0);
+                
+                if(addresses.length === 0) {
+                    return showStatus('merkleStatus','לא נמצאו כתובות תקינות','error');
+                }
+
+                const response = await fetch('/api/add-voters', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ addresses })
+                });
+                
+                const data = await response.json();
+                
+                if(!data.success) {
+                    return showStatus('merkleStatus',' שגיאה: ' + (data.error || 'שגיאה לא ידועה'),'error');
+                }
+                
+                showStatus('merkleStatus',` ${data.totalVoters} בוחרים נוספו ו-Merkle Root עודכן בחוזה!`,'success');
+                
+                document.getElementById('displayMerkleRoot').textContent = data.merkleRoot;
+                document.getElementById('displayVotersCount').textContent = data.totalVoters;
+                document.getElementById('merkleInfoDisplay').style.display = 'block';
+                
+                document.getElementById('contractMerkleRoot').textContent = data.merkleRoot;
+                
+                document.getElementById('votersInput').value = '';
+                
+            }catch(e){
+                console.error('שגיאה בהוספת בוחרים:', e);
+                showStatus('merkleStatus',' שגיאה: '+e.message,'error');
+            }
+        };
+
+        const generateRandomVoters = () => {
+            const addresses = [];
+            for (let i = 0; i < 5; i++) {
+                const randomHex = '0x' + Array.from({length: 40}, () => 
+                    Math.floor(Math.random() * 16).toString(16)
+                ).join('');
+                addresses.push(randomHex);
+            }
+            document.getElementById('votersInput').value = addresses.join('\n');
+            showStatus('merkleStatus',' נוצרו 5 כתובות לדוגמה - לחץ "הוסף בוחרים" להמשך','info');
+        };
+
+        const showStatus=(id,msg,type)=>{
+            const el=document.getElementById(id);
+            if(el) {
+                el.textContent=msg; 
+                el.className=`status-message ${type}`;
+            }
+        };
+    </script>
+</body>
+</html>

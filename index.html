@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מערכת הצבעה מבוזרת</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <script src="main.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding-bottom: 40px;
+        }
+
+        .navbar {
+            background: rgba(44, 62, 80, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-left {
+            display: flex;
+            gap: 10px;
+        }
+
+        .navbar-left a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .navbar-left a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .navbar-right button {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3);
+        }
+
+        .navbar-right button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeIn 0.8s ease-in;
+        }
+
+        .hero h1 {
+            color: white;
+            font-size: 48px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .hero p {
+            color: rgba(255,255,255,0.9);
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 50px rgba(0,0,0,0.25);
+        }
+
+        .card h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 24px;
+            text-align: center;
+            position: relative;
+            padding-bottom: 15px;
+        }
+
+        .card h3::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 14px 35px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            display: inline-block;
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        button:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            box-shadow: 0 4px 15px rgba(56, 239, 125, 0.3);
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 6px 20px rgba(56, 239, 125, 0.4);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3);
+        }
+
+        .btn-info:hover {
+            box-shadow: 0 6px 20px rgba(0, 242, 254, 0.4);
+        }
+
+        input[type=number],
+        input[type=text] {
+            width: 100%;
+            padding: 15px 20px;
+            margin: 10px 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        input[type=number]:focus,
+        input[type=text]:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .status-message {
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 500;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        #myTable {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 20px;
+            overflow: hidden;
+            border-radius: 10px;
+        }
+
+        #myTable thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        #myTable th {
+            color: white;
+            padding: 18px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        #myTable td {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #e0e0e0;
+            background: white;
+            transition: background 0.3s ease;
+        }
+
+        #myTable tbody tr:hover td {
+            background: #f8f9fa;
+        }
+
+        #myTable tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .vote-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .status-section {
+            text-align: center;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-weight: bold;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+
+        .status-open {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-closed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 32px;
+            }
+
+            .navbar {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .navbar-left {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .navbar-left a {
+                text-align: center;
+            }
+
+            input[type=number],
+            input[type=text] {
+                width: 100%;
+            }
+        }
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .connect-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="navbar-left">
+            <a href="/index.html"> הצבעה</a>
+        </div>
+        <div class="navbar-right">
+            <button onclick="window.location.href='/admin'"> ממשק אדמין</button>
+        </div>
+    </div>
+
+    <div class="hero">
+        <h1> מערכת הצבעה מבוזרת</h1>
+    </div>
+
+    <div class="container">
+        <div class="card connect-card">
+            <h3> חיבור לארנק</h3>
+            <div style="text-align: center;">
+                <button onclick="connectMetamask()">התחבר ל-MetaMask</button>
+                <p id="metamasknotification" class="status-message" style="display: none;"></p>
+            </div>
+        </div>
+
+        <div class="cards-grid">
+            <div class="card">
+                <h3> הצבע למועמד</h3>
+                <div class="vote-form">
+                    <input type="number" id="vote" placeholder="הכנס מספר מועמד (Index)">
+                    <button class="btn-success" onclick="addVote()">שלח הצבעה</button>
+                    <p id="p3" class="status-message" style="display: none;"></p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>= סטטוס הצבעה</h3>
+                <div class="status-section">
+                    <button class="btn-info" onclick="voteStatus()">בדוק סטטוס</button>
+                    <div id="status" class="status-message" style="display: none;"></div>
+                    <div id="time" class="status-message" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3> רשימת מועמדים</h3>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <button onclick="getAllCandidates()"> רענן רשימת מועמדים</button>
+            </div>
+            <p id="candidatesStatus" class="status-message" style="display: none;"></p>
+            <table id="myTable">
+                <thead>
+                    <tr>
+                        <th>מספר</th>
+                        <th>שם המועמד</th>
+                        <th>מספר קולות</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="3" style="padding: 30px;">
+                            <div class="spinner"></div> טוען מועמדים...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function showMessage(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = message;
+                element.className = `status-message status-${type}`;
+                element.style.display = 'block';
+            }
+        }
+
+        function hideMessage(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.style.display = 'none';
+            }
+        }
+
+        if (typeof connectMetamask !== 'undefined') {
+            const originalConnectMetamask = connectMetamask;
+            connectMetamask = async function() {
+                try {
+                    await originalConnectMetamask();
+                    showMessage('metamasknotification', '✅ התחברת בהצלחה ל-MetaMask!', 'success');
+                } catch (error) {
+                    showMessage('metamasknotification', '❌ שגיאה בחיבור: ' + error.message, 'error');
+                }
+            };
+        }
+
+        if (typeof addVote !== 'undefined') {
+            const originalAddVote = addVote;
+            addVote = async function() {
+                const voteInput = document.getElementById('vote');
+                if (!voteInput || !voteInput.value) {
+                    showMessage('p3', '⚠️ אנא הכנס מספר מועמד', 'error');
+                    return;
+                }
+                
+                try {
+                    showMessage('p3', '⏳ שולח הצבעה...', 'info');
+                    await originalAddVote();
+                    
+                    setTimeout(() => {
+                        const p3 = document.getElementById('p3');
+                        if (p3 && p3.innerHTML.includes('successfully')) {
+                            showMessage('p3', ' ההצבעה נשלחה בהצלחה!', 'success');
+                            voteInput.value = '';
+                        } else if (p3 && p3.innerHTML.includes('Error')) {
+                            showMessage('p3', ' ' + p3.innerHTML, 'error');
+                        }
+                    }, 100);
+                } catch (error) {
+                    showMessage('p3', ' שגיאה: ' + error.message, 'error');
+                }
+            };
+        }
+
+        if (typeof voteStatus !== 'undefined') {
+            const originalVoteStatus = voteStatus;
+            voteStatus = async function() {
+                try {
+                    showMessage('status', ' טוען סטטוס...', 'info');
+                    await originalVoteStatus();
+                    
+                    setTimeout(() => {
+                        const statusEl = document.getElementById('status');
+                        const timeEl = document.getElementById('time');
+                        
+                        if (statusEl && statusEl.innerHTML) {
+                            if (statusEl.innerHTML.includes('open')) {
+                                statusEl.className = 'status-message status-success';
+                                statusEl.innerHTML = '🟢 ' + statusEl.innerHTML;
+                            } else if (statusEl.innerHTML.includes('finished')) {
+                                statusEl.className = 'status-message status-error';
+                                statusEl.innerHTML = '🔴 ' + statusEl.innerHTML;
+                            }
+                            statusEl.style.display = 'block';
+                        }
+                        
+                        if (timeEl && timeEl.innerHTML) {
+                            timeEl.className = 'status-message status-info';
+                            timeEl.innerHTML = '⏱️ ' + timeEl.innerHTML;
+                            timeEl.style.display = 'block';
+                        }
+                    }, 100);
+                } catch (error) {
+                    showMessage('status', ' שגיאה בטעינת סטטוס: ' + error.message, 'error');
+                }
+            };
+        }
+
+        if (typeof getAllCandidates !== 'undefined') {
+            const originalGetAllCandidates = getAllCandidates;
+            getAllCandidates = async function() {
+                const tbody = document.querySelector('#myTable tbody');
+                const p3 = document.getElementById('p3');
+                
+                if (!tbody) return;
+                
+                tbody.innerHTML = '<tr><td colspan="3" style="padding: 30px;"><div class="spinner"></div> טוען מועמדים...</td></tr>';
+                if (p3) p3.style.display = 'none';
+                
+                try {
+                    await originalGetAllCandidates();
+                    
+                    setTimeout(() => {
+                        const rows = tbody.querySelectorAll('tr');
+                        if (rows.length === 0 || (rows.length === 1 && rows[0].cells.length === 1)) {
+                            tbody.innerHTML = '<tr><td colspan="3" style="padding: 30px; color: #999;"> אין מועמדים במערכת</td></tr>';
+                        } else {
+                            rows.forEach(row => {
+                                const cells = row.cells;
+                                if (cells.length >= 3) {
+                                    const voteCell = cells[2];
+                                    const votes = voteCell.textContent;
+                                    if (votes && !isNaN(votes)) {
+                                        voteCell.innerHTML = `<span style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 6px 16px; border-radius: 20px; font-weight: bold; font-size: 14px; display: inline-block;">${votes}</span>`;
+                                    }
+                                }
+                            });
+                            
+                            if (p3) {
+                                showMessage('p3', '✅ נטענו ' + rows.length + ' מועמדים', 'success');
+                            }
+                        }
+                    }, 200);
+                } catch (error) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="padding: 30px; color: #dc3545;">❌ שגיאה בטעינת מועמדים</td></tr>';
+                    if (p3) {
+                        showMessage('p3', ' שגיאה: ' + error.message, 'error');
+                    }
+                }
+            };
+        }
+
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (typeof getAllCandidates !== 'undefined') {
+                    getAllCandidates();
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>
